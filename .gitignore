@@ -1,3 +1,4 @@
 .idea
 /lucene-8.6.3/
 .vscode
+/dataset/docs

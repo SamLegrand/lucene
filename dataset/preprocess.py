@@ -2,20 +2,20 @@ from lxml import etree
 
 context = etree.iterparse('./dataset/Posts.xml', events=('end',), tag='row')
 
-f = open('./dataset/subset.xml', 'wb')
-
 i = 0
 # lines = []
-my_bytes = bytearray()
 for action, elem in context:
     i += 1
     new_row = etree.Element('post', attrib={attribute: elem.attrib[attribute] for attribute in ['Id', 'ParentId', 'AcceptedAnswerId', 'CreationDate', 'LastEditDate', 'Body', 'LastEditorDisplayName', 'Title', 'Tags'] if attribute in elem.attrib})
+    if 'ParentId' in elem.attrib:
+        filenum = elem.attrib['ParentId']
+    else:
+        filenum = elem.attrib['Id']
+    doc = open('./dataset/docs/%s.xml' % filenum, 'ab')
+    doc.write(etree.tostring(new_row) + b'\x0a')
+    doc.close()
     # lines.append(etree.tostring(new_row) + b'\x0a')
-    my_bytes.extend(etree.tostring(new_row) + b'\x0a')
     # bytestring += etree.tostring(new_row) + b'\x0a'
     # f.write(etree.tostring(new_row) + b'\x0a')
-    if i % 100000 == 0:
-        f.write(my_bytes)
-        # break
-    if i == 1000000:
+    if i == 10000:
         break
