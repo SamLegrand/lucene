@@ -8,14 +8,63 @@ import org.apache.lucene.search.*;
 import org.apache.lucene.store.*;
 import org.apache.lucene.util.*;
 
+import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.parsers.DocumentBuilder;
+import org.xml.sax.InputSource;
+import org.w3c.dom.NodeList;
+import org.w3c.dom.Node;
+import org.w3c.dom.Element;
+
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.io.IOException;
+import java.io.File;
+import java.io.BufferedReader;
+import java.io.FileReader;
+import java.io.StringReader;
 
 import java.util.Scanner;
 
 public class test {
-    public static void main(String[] args) throws IOException, ParseException {
+    public static void addDocuments(IndexWriter iwriter) throws Exception {
+        for (int n = 1; n <= 100000; n++) {
+            String filePath = String.format("./dataset/docs/%d.xml", n);
+            File docFile = new File(filePath);
+            if (docFile.exists()) {
+                DocumentBuilderFactory dbFactory = DocumentBuilderFactory.newInstance();
+                dbFactory.setValidating(false);
+                DocumentBuilder dBuilder = dbFactory.newDocumentBuilder();
+                Document doc = new Document();
+
+                BufferedReader reader = new BufferedReader(new FileReader(docFile));
+                String line = reader.readLine();
+                while (line != null) {
+                    org.w3c.dom.Document xmlDocument = dBuilder.parse(new InputSource(new StringReader(line)));
+                    NodeList nodeList = xmlDocument.getElementsByTagName("*");
+                    Node node = nodeList.item(0);
+                    if (node.getNodeType() == Node.ELEMENT_NODE) {
+                        Element element = (Element) node;
+                        if (element.hasAttribute("ParentId")) {
+                            doc.add(new Field("Comment"+element.getAttribute("Id"), element.getAttribute("Body"), TextField.TYPE_STORED));
+                        }
+                        else {
+                            doc.add(new Field("Question", element.getAttribute("Body"), TextField.TYPE_STORED));
+                            doc.add(new Field("Title", element.getAttribute("Title"), TextField.TYPE_STORED));
+                            doc.add(new Field("Question Creation Date", element.getAttribute("CreationDate"), TextField.TYPE_STORED));
+                            doc.add(new Field("Question Last Edit Date", element.getAttribute("LastEditDate"), TextField.TYPE_STORED));
+                            doc.add(new Field("Question Last Editor", element.getAttribute("LastEditorDisplayName"), TextField.TYPE_STORED));
+                            doc.add(new Field("Question Tags", element.getAttribute("Tags"), TextField.TYPE_STORED));
+                        }
+                    }
+                    line = reader.readLine();
+                }
+                reader.close();
+                iwriter.addDocument(doc);
+            }
+        }
+    }
+    
+    public static void main(String[] args) throws IOException, ParseException, Exception {
 
         System.out.println("Hello, World!");
         System.out.println("CL Arguments: "+Integer.toString(args.length));
@@ -39,7 +88,8 @@ public class test {
         String text = "This is the text to be indexed.";
         doc.add(new Field("fieldname", text, TextField.TYPE_STORED)); // er is ook een TYPE_NOT_STORED "Indexed, tokenized, not stored"
 
-        iwriter.addDocument(doc);
+        addDocuments(iwriter);
+        //iwriter.addDocument(doc);
         iwriter.close(); // Closes all open resources and releases the write lock.
 
         // Now search the index:
@@ -49,7 +99,7 @@ public class test {
         // you should share a single IndexSearcher instance across multiple searches instead of creating a new one per-search.
 
         // Parse a simple query that searches for "text":
-        QueryParser parser = new QueryParser("fieldname", analyzer); // parset queries
+        QueryParser parser = new QueryParser("Question", analyzer); // parset queries
 
         Scanner in = new Scanner(System.in); // voor input
 
