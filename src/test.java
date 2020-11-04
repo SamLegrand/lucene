@@ -74,6 +74,19 @@ public class test {
             }
         }
     }
+
+    public static void printHelp()
+    {
+        System.out.println("Available commands:");
+        System.out.println("  help             shows this menu");
+        System.out.println("  search {query}   search on a given query");
+        System.out.println("  pagesize {n}     selects the number of results shown per page (default: 10)");
+        System.out.println("  next             go to the next page of results");
+        System.out.println("  prev             go to the previous page of results");
+        System.out.println("  seek {n}         go to the page containing result n");
+        System.out.println("  view             show current results again");
+        System.out.println("  quit             exits the program");
+    }
     
     public static void main(String[] args) throws IOException, ParseException, Exception {
 
@@ -114,32 +127,182 @@ public class test {
 
         Scanner in = new Scanner(System.in); // voor input
 
+        printHelp();
+        System.out.println("");
+
+        int pagesize = 10;
+        int current_page = 0;
+        ScoreDoc[] hits = {};
+
         while (true)
         {
-            System.out.println("Give query (or \"q\" to stop)");
-            String s = in.next();
-            if (s.equals("q"))   // s == "q" werkt niet :)
+            System.out.println("Enter a command");
+            String input_str = in.nextLine();
+            String[] parts = input_str.split(" "); // split on space
+
+            //System.out.println(parts.length);
+            //System.out.println(parts);
+
+            if (parts.length == 0)
+            {
+                System.out.println("Empty command: invalid. Please try again.");
+                continue;
+            }
+
+            // geen switch case want dan kan ik geen break erin doen om uit de while loop te geraken
+            if (parts[0].equals("help"))
+            {
+                printHelp();
+                continue;
+            }
+            else if (parts[0].equals("quit"))
             {
                 break;
             }
+            else if (parts[0].equals("search"))
+            {
+                if (parts.length <= 1)
+                {
+                    // "search" zonder query
+                    System.out.println("Can't search on an empty query. Please try again.");
+                    continue;
+                }
 
-            Query query = parser.parse(s); // query waarop we zoeken
+                Query query = parser.parse(input_str.substring(7)); // query waarop we zoeken: "search " is 7 tekentjes, die knippen we eraf vanvoor
+                hits = isearcher.search(query, 1000).scoreDocs; // max 1000 resultaten
+                current_page = 0; // toont pagesize*current_page tot pagesize*(current_page+1)-1
+                if (hits.length == 0)
+                {
+                    System.out.println("No results were found for the given query. Please try again.");
+                }
+            }
+            else if (parts[0].equals("next"))
+            {
+                if (hits.length == 0)
+                {
+                    System.out.println("Can't go to next page: no results.");
+                    continue;
+                }
+                int next_page_first_index = (current_page+1)*pagesize;
+                if (next_page_first_index >= hits.length)
+                {
+                    System.out.println("Can't go to next page: no more results available.");
+                    continue;
+                }
 
-            ScoreDoc[] hits = isearcher.search(query, 10).scoreDocs; // eerste 10 resultaten
+                current_page++;
+            }
+            else if (parts[0].equals("prev"))
+            {
+                if (hits.length == 0)
+                {
+                    System.out.println("Can't go to previous page: no results.");
+                    continue;
+                }
+
+                if (current_page <= 0)
+                {
+                    System.out.println("Can't go to previous page: this is the first page.");
+                    continue;
+                }
+
+                current_page--;
+            }
+            else if (parts[0].equals("pagesize"))
+            {
+                if (parts.length != 2)
+                {
+                    System.out.println("Invalid use: please give a number (default: pagesize 10)");
+                    continue;
+                }
+
+                int new_size = 0;
+                try
+                {
+                    new_size = Integer.parseInt(parts[1]);
+                }
+                catch (Exception e)
+                {
+                    System.out.println("Error parsing number \""+parts[1]+"\".");
+                    System.out.println("Page size left unchanged.");
+                    continue;
+                }
+
+                if (new_size < 1)
+                {
+                    System.out.println("Can't use a page size of less than 1!");
+                    continue;
+                }
+
+                // ook paginanummer veranderen: eerste # van huidige vorige pagina moeten we nu hebben
+                int search_index = pagesize*current_page;
+
+                pagesize = new_size;
+                current_page = search_index / pagesize;
+                // kan dit een current_page geven die te hoog is?
+                assert pagesize*current_page < hits.length;
+            }
+            else if (parts[0].equals("seek"))
+            {
+                if (parts.length != 2)
+                {
+                    System.out.println("Invalid use: please give the result to be jumped to (example: seek 25 to jump to the page with result 25)");
+                    continue;
+                }
+
+                if (hits.length == 0)
+                {
+                    // duidelijker errorbericht als er nog geen resultaten zijn
+                    System.out.println("Can't jump to given result: no results.");
+                    continue;
+                }
+
+                int seek_index = 0;
+                try
+                {
+                    seek_index = Integer.parseInt(parts[1]);
+                }
+                catch (Exception e)
+                {
+                    System.out.println("Error parsing number \""+parts[1]+"\".");
+                    System.out.println("Could not seek to given result.");
+                    continue;
+                }
+
+                if ((seek_index < 1) | (seek_index > hits.length))
+                {
+                    System.out.println("Error: invalid index.");
+                    continue;
+                }
+
+                seek_index--; // tussen 0 en hits.length-1
+                current_page = seek_index / pagesize;
+                // kan dit een current_page geven die te hoog is?
+                assert pagesize*current_page < hits.length;
+            }
+            else if (parts[0].equals("view"))
+            {
+                if (hits.length == 0)
+                {
+                    System.out.println("Can't view results: no results.");
+                    continue;
+                }
+                // niks doen, gewoon geen continue. code hieronder print al
+            }
+            else
+            {
+                System.out.println("Unrecognized command \""+parts[0]+"\". Please try again or type help for a list of commands.");
+                continue;
+            }
 
             // Iterate through the results:
-            System.out.println("Results found: "+Integer.toString(hits.length));
             if (hits.length > 0)
             {
-                System.out.println("Query results:");
-                for (int i = 0; i < hits.length; i++)
+                System.out.println("Showing results from page "+Integer.toString(current_page+1)+": (total results: "+Integer.toString(hits.length)+")");
+                for(int i = pagesize*current_page; (i < (pagesize*(current_page+1))) && (i < hits.length); i++)
                 {
                     Document hitDoc = isearcher.doc(hits[i].doc);
-                    System.out.println("Document" + Integer.toString(i) + ": " + hitDoc.get("Title") + " [" + hitDoc.get("Question Creation Date") + "]");
-                    /*List<IndexableField> fields = hitDoc.getFields();
-                    for (IndexableField field : fields) {
-                        System.out.println(field.name()+": "+hitDoc.get(field.name()));
-                    }*/
+                    System.out.println(String.format("% 4d", i+1)+": " + hitDoc.get("Title") + " [" + hitDoc.get("Question Creation Date") + "]");
                 }
             }
             System.out.println("");
