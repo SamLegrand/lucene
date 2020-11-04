@@ -24,8 +24,16 @@ import java.io.FileReader;
 import java.io.StringReader;
 
 import java.util.Scanner;
+import java.util.List;
 
 public class test {
+    public static void addConditionally(Document doc, Element element, String field, String attribute) {
+        if (element.hasAttribute(attribute)) {
+            doc.add(new Field(field, element.getAttribute(attribute), TextField.TYPE_STORED));
+            doc.add(new Field("All", element.getAttribute(attribute), TextField.TYPE_NOT_STORED));
+        }
+    }
+
     public static void addDocuments(IndexWriter iwriter) throws Exception {
         for (int n = 1; n <= 100000; n++) {
             String filePath = String.format("./dataset/docs/%d.xml", n);
@@ -45,15 +53,18 @@ public class test {
                     if (node.getNodeType() == Node.ELEMENT_NODE) {
                         Element element = (Element) node;
                         if (element.hasAttribute("ParentId")) {
-                            doc.add(new Field("Comment"+element.getAttribute("Id"), element.getAttribute("Body"), TextField.TYPE_STORED));
+                            addConditionally(doc, element, "Comment"+element.getAttribute("Id"), "Body");
+                            addConditionally(doc, element, "Comment"+element.getAttribute("Id")+" Creation Date", "CreationDate");
+                            addConditionally(doc, element, "Comment"+element.getAttribute("Id")+"Last Edit Date", "LastEditDate");
+                            addConditionally(doc, element, "Comment"+element.getAttribute("Id")+"Last Editor", "LastEditorDisplayName");
                         }
                         else {
-                            doc.add(new Field("Question", element.getAttribute("Body"), TextField.TYPE_STORED));
-                            doc.add(new Field("Title", element.getAttribute("Title"), TextField.TYPE_STORED));
-                            doc.add(new Field("Question Creation Date", element.getAttribute("CreationDate"), TextField.TYPE_STORED));
-                            doc.add(new Field("Question Last Edit Date", element.getAttribute("LastEditDate"), TextField.TYPE_STORED));
-                            doc.add(new Field("Question Last Editor", element.getAttribute("LastEditorDisplayName"), TextField.TYPE_STORED));
-                            doc.add(new Field("Question Tags", element.getAttribute("Tags"), TextField.TYPE_STORED));
+                            addConditionally(doc, element, "Question", "Body");
+                            addConditionally(doc, element, "Title", "Title");
+                            addConditionally(doc, element, "Question Creation Date", "CreationDate");
+                            addConditionally(doc, element, "Question Last Edit Date", "LastEditDate");
+                            addConditionally(doc, element, "Question Last Editor", "LastEditorDisplayName");
+                            addConditionally(doc, element, "Question Tags", "Tags");
                         }
                     }
                     line = reader.readLine();
@@ -99,7 +110,7 @@ public class test {
         // you should share a single IndexSearcher instance across multiple searches instead of creating a new one per-search.
 
         // Parse a simple query that searches for "text":
-        QueryParser parser = new QueryParser("Question", analyzer); // parset queries
+        QueryParser parser = new QueryParser("All", analyzer); // parset queries
 
         Scanner in = new Scanner(System.in); // voor input
 
@@ -124,7 +135,11 @@ public class test {
                 for (int i = 0; i < hits.length; i++)
                 {
                     Document hitDoc = isearcher.doc(hits[i].doc);
-                    System.out.println(Integer.toString(i)+": "+hitDoc.get("fieldname"));
+                    System.out.println("Document" + Integer.toString(i) + ": " + hitDoc.get("Title") + " [" + hitDoc.get("Question Creation Date") + "]");
+                    /*List<IndexableField> fields = hitDoc.getFields();
+                    for (IndexableField field : fields) {
+                        System.out.println(field.name()+": "+hitDoc.get(field.name()));
+                    }*/
                 }
             }
             System.out.println("");
