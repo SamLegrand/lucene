@@ -18,6 +18,7 @@ import org.w3c.dom.Element;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.io.IOException;
+import java.io.PrintWriter;
 import java.io.File;
 import java.io.BufferedReader;
 import java.io.FileReader;
@@ -25,6 +26,9 @@ import java.io.StringReader;
 
 import java.util.Scanner;
 import java.util.List;
+import java.util.ArrayList;
+
+import java.awt.Desktop;
 
 public class test {
     public static void addConditionally(Document doc, Element element, String field, String attribute) {
@@ -53,10 +57,10 @@ public class test {
                     if (node.getNodeType() == Node.ELEMENT_NODE) {
                         Element element = (Element) node;
                         if (element.hasAttribute("ParentId")) {
-                            addConditionally(doc, element, "Comment"+element.getAttribute("Id"), "Body");
+                            addConditionally(doc, element, "Comment"+element.getAttribute("Id")+" Text", "Body");
                             addConditionally(doc, element, "Comment"+element.getAttribute("Id")+" Creation Date", "CreationDate");
-                            addConditionally(doc, element, "Comment"+element.getAttribute("Id")+"Last Edit Date", "LastEditDate");
-                            addConditionally(doc, element, "Comment"+element.getAttribute("Id")+"Last Editor", "LastEditorDisplayName");
+                            addConditionally(doc, element, "Comment"+element.getAttribute("Id")+" Last Edit Date", "LastEditDate");
+                            addConditionally(doc, element, "Comment"+element.getAttribute("Id")+" Last Editor", "LastEditorDisplayName");
                         }
                         else {
                             addConditionally(doc, element, "Question", "Body");
@@ -85,6 +89,7 @@ public class test {
         System.out.println("  prev             go to the previous page of results");
         System.out.println("  seek {n}         go to the page containing result n");
         System.out.println("  view             show current results again");
+        System.out.println("  select {n}       show result n in detail");
         System.out.println("  quit             exits the program");
     }
     
@@ -279,6 +284,117 @@ public class test {
                 current_page = seek_index / pagesize;
                 // kan dit een current_page geven die te hoog is?
                 assert pagesize*current_page < hits.length;
+            }
+            else if (parts[0].equals("select"))
+            {
+                if (parts.length != 2)
+                {
+                    System.out.println("Invalid use: please give the result to be printed in detail.");
+                    continue;
+                }
+
+                if (hits.length == 0)
+                {
+                    // duidelijker errorbericht als er nog geen resultaten zijn
+                    System.out.println("Can't select given result: no results.");
+                    continue;
+                }
+
+                int select_index = 0;
+                try
+                {
+                    select_index = Integer.parseInt(parts[1]);
+                }
+                catch (Exception e)
+                {
+                    System.out.println("Error parsing number \""+parts[1]+"\".");
+                    continue;
+                }
+
+                if ((select_index < 1) | (select_index > hits.length))
+                {
+                    System.out.println("Error: invalid index.");
+                    continue;
+                }
+
+                select_index--; // tussen 0 en hits.length-1
+                Document hitDoc = isearcher.doc(hits[select_index].doc);
+                List<IndexableField> fields = hitDoc.getFields();
+                List<String> fields_str = new ArrayList<>();
+                for(IndexableField field: fields)
+                {
+                    fields_str.add(field.name());
+                    //System.out.println("field: \""+field.name()+"\"");
+                }
+
+                PrintWriter writer = new PrintWriter("result.html", "UTF-8");
+
+                // title
+                String title_str = "<h1>";
+                title_str += hitDoc.get("Title");
+                if (fields_str.contains("Question Creation Date"))
+                {
+                    title_str += " [created "+hitDoc.get("Question Creation Date")+"]";
+                }
+                title_str += "</h1>";
+                writer.println(title_str);
+
+                if (fields_str.contains("Question Last Editor"))
+                {
+                    writer.println("<h2> last edit by " + hitDoc.get("Question Last Editor")+" on "+hitDoc.get("Question Last Edit Date")+"</h2>");
+                }
+                if (fields_str.contains("Question Tags"))
+                {
+                    writer.println("<h2> tags: "+hitDoc.get("Question Tags")+"</h2>");
+                }
+
+                writer.println(hitDoc.get("Question"));
+
+                writer.println("<h1>Comments</h1>");
+
+                // zoeken naar Comments***** Text en dan die comments toevoegen aan de html
+                for (String fieldname: fields_str)
+                {
+                    if (fieldname.length() < 7) continue; // zoeken enkel naar Comment*****
+                    if (fieldname.substring(0, 7).equals("Comment") && fieldname.contains("Text"))
+                    {
+                        //writer.println("<h3>Comment</h3>");
+                        String base_field = fieldname.split(" ")[0]; // Comment12345 zonder de Text
+                        if (fields_str.contains(base_field+" Creation Date"))
+                        {
+                            writer.println("<b>created "+hitDoc.get(base_field+" Creation Date")+"</b>");
+                        }
+                        else
+                        {
+                            writer.println("<b>created at an unknown time</b>");
+                        }
+
+                        if (fields_str.contains(base_field+" Last Editor"))
+                        {
+                            // als er last editor instaat zal er ook wel last edit date instaan?
+                            writer.println("last edit by " + hitDoc.get(base_field+" Last Editor")+" on "+hitDoc.get(base_field+" Last Edit Date"));
+                        }
+                        writer.println(hitDoc.get(base_field+" Text"));
+                        writer.println("<hr>");
+                        
+                    }
+                }
+                
+                //
+
+                writer.close();
+
+                try
+                {
+                    File f = new File("result.html");
+                    Desktop.getDesktop().open(f);
+                }
+                catch (Exception e)
+                {
+                    System.out.println("Could not open result.html in your default browser. You may open the file manually.");
+                }
+
+                continue;
             }
             else if (parts[0].equals("view"))
             {
