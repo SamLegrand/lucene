@@ -1,6 +1,10 @@
 from lxml import etree
+import os
 
-context = etree.iterparse('./dataset/Posts.xml', events=('end',), tag='row')
+context = etree.iterparse('./dataset/subset.xml', events=('end',), tag='row')
+
+if not os.path.exists('./dataset/docs'):
+    os.makedirs('./dataset/docs')
 
 i = 0
 for action, elem in context:
