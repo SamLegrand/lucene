@@ -95,12 +95,16 @@ public class test {
     
     public static void main(String[] args) throws IOException, ParseException, Exception {
 
+        /*
         System.out.println("Hello, World!");
         System.out.println("CL Arguments: "+Integer.toString(args.length));
         for(int i = 0; i < args.length; i++)
         {
             System.out.println(Integer.toString(i) + " : " + args[i]);
         }
+        */
+
+        System.out.println("Loading documents, please wait...");
 
         Analyzer analyzer = new StandardAnalyzer(); // An Analyzer builds TokenStreams, which analyze text. It thus represents a policy for extracting index terms from text.
 
@@ -141,6 +145,7 @@ public class test {
 
         while (true)
         {
+            System.out.println("");
             System.out.println("Enter a command");
             String input_str = in.nextLine();
             String[] parts = input_str.split(" "); // split on space
@@ -317,81 +322,118 @@ public class test {
                     continue;
                 }
 
-                select_index--; // tussen 0 en hits.length-1
-                Document hitDoc = isearcher.doc(hits[select_index].doc);
-                List<IndexableField> fields = hitDoc.getFields();
-                List<String> fields_str = new ArrayList<>();
-                for(IndexableField field: fields)
-                {
-                    fields_str.add(field.name());
-                    //System.out.println("field: \""+field.name()+"\"");
-                }
-
-                PrintWriter writer = new PrintWriter("result.html", "UTF-8");
-
-                // title
-                String title_str = "<h1>";
-                title_str += hitDoc.get("Title");
-                if (fields_str.contains("Question Creation Date"))
-                {
-                    title_str += " [created "+hitDoc.get("Question Creation Date")+"]";
-                }
-                title_str += "</h1>";
-                writer.println(title_str);
-
-                if (fields_str.contains("Question Last Editor"))
-                {
-                    writer.println("<h2> last edit by " + hitDoc.get("Question Last Editor")+" on "+hitDoc.get("Question Last Edit Date")+"</h2>");
-                }
-                if (fields_str.contains("Question Tags"))
-                {
-                    writer.println("<h2> tags: "+hitDoc.get("Question Tags")+"</h2>");
-                }
-
-                writer.println(hitDoc.get("Question"));
-
-                writer.println("<h1>Comments</h1>");
-
-                // zoeken naar Comments***** Text en dan die comments toevoegen aan de html
-                for (String fieldname: fields_str)
-                {
-                    if (fieldname.length() < 7) continue; // zoeken enkel naar Comment*****
-                    if (fieldname.substring(0, 7).equals("Comment") && fieldname.contains("Text"))
-                    {
-                        //writer.println("<h3>Comment</h3>");
-                        String base_field = fieldname.split(" ")[0]; // Comment12345 zonder de Text
-                        if (fields_str.contains(base_field+" Creation Date"))
-                        {
-                            writer.println("<b>created "+hitDoc.get(base_field+" Creation Date")+"</b>");
-                        }
-                        else
-                        {
-                            writer.println("<b>created at an unknown time</b>");
-                        }
-
-                        if (fields_str.contains(base_field+" Last Editor"))
-                        {
-                            // als er last editor instaat zal er ook wel last edit date instaan?
-                            writer.println("last edit by " + hitDoc.get(base_field+" Last Editor")+" on "+hitDoc.get(base_field+" Last Edit Date"));
-                        }
-                        writer.println(hitDoc.get(base_field+" Text"));
-                        writer.println("<hr>");
-                        
-                    }
-                }
-                
-                //
-
-                writer.close();
-
                 try
                 {
-                    File f = new File("result.html");
-                    Desktop.getDesktop().open(f);
+                    select_index--; // tussen 0 en hits.length-1
+                    Document hitDoc = isearcher.doc(hits[select_index].doc);
+                    List<IndexableField> fields = hitDoc.getFields();
+                    List<String> fields_str = new ArrayList<>();
+                    for(IndexableField field: fields)
+                    {
+                        fields_str.add(field.name());
+                        //System.out.println("field: \""+field.name()+"\"");
+                    }
+
+                    PrintWriter writer = new PrintWriter("result.html", "UTF-8");
+
+                    // title
+                    String title_str = "<h1>";
+                    title_str += hitDoc.get("Title");
+                    if (fields_str.contains("Question Creation Date"))
+                    {
+                        title_str += " [created "+hitDoc.get("Question Creation Date")+"]";
+                    }
+                    title_str += "</h1>";
+                    writer.println(title_str);
+
+                    if (fields_str.contains("Question Last Editor") || fields_str.contains("Question Last Edit Date"))
+                    {
+                        String s = "<h2>last edit";
+                        if (fields_str.contains("Question Last Editor"))
+                        {
+                            if (!hitDoc.get("Question Last Editor").equals(""))
+                            {
+                                s += " by " + hitDoc.get("Question Last Editor");
+                            }
+                        }
+                        if (fields_str.contains("Question Last Edit Date"))
+                        {
+                            s += " on " + hitDoc.get("Question Last Edit Date");
+                        }
+                        s += "</h2>";
+                        writer.println(s);
+                    }
+
+                    if (fields_str.contains("Question Tags"))
+                    {
+                        if (!hitDoc.get("Question Tags").equals(""))
+                        {
+                            writer.println("<h2> tags: "+hitDoc.get("Question Tags").replace("<", "&lt;").replace(">", "&gt;")+"</h2>");
+                        }
+                    }
+
+                    writer.println(hitDoc.get("Question"));
+
+                    writer.println("<h1>Comments</h1>");
+
+                    // zoeken naar Comments***** Text en dan die comments toevoegen aan de html
+                    for (String fieldname: fields_str)
+                    {
+                        if (fieldname.length() < 7) continue; // zoeken enkel naar Comment*****
+                        if (fieldname.substring(0, 7).equals("Comment") && fieldname.contains("Text"))
+                        {
+                            //writer.println("<h3>Comment</h3>");
+                            String base_field = fieldname.split(" ")[0]; // Comment12345 zonder de Text
+                            if (fields_str.contains(base_field+" Creation Date"))
+                            {
+                                writer.println("<b>created "+hitDoc.get(base_field+" Creation Date")+"</b>");
+                            }
+                            else
+                            {
+                                writer.println("<b>created at an unknown time</b>");
+                            }
+
+                            if (fields_str.contains(base_field+" Last Editor") || fields_str.contains(base_field+" Last Edit Date"))
+                            {
+                                String s = "<i>last edit";
+                                if (fields_str.contains(base_field+" Last Editor"))
+                                {
+                                    if (!hitDoc.get(base_field+" Last Editor").equals(""))
+                                    {
+                                        s += " by " + hitDoc.get(base_field+" Last Editor");
+                                    }
+                                }
+                                if (fields_str.contains(base_field+" Last Edit Date"))
+                                {
+                                    s += " on " + hitDoc.get(base_field+" Last Edit Date");
+                                }
+                                s += "</i>";
+                                writer.println(s);
+                            }
+                            writer.println(hitDoc.get(base_field+" Text"));
+                            writer.println("<hr>");
+                            
+                        }
+                    }
+                    
+                    //
+
+                    writer.close();
+
+                    try
+                    {
+                        File f = new File("result.html");
+                        Desktop.getDesktop().open(f);
+                    }
+                    catch (Exception e)
+                    {
+                        System.out.println("Could not open result.html in your default browser. You may open the file manually.");
+                    }
                 }
                 catch (Exception e)
                 {
-                    System.out.println("Could not open result.html in your default browser. You may open the file manually.");
+                    System.out.println("Something went wrong creating your HTML file. Sorry for the inconvenience.");
+                    e.printStackTrace();
                 }
 
                 continue;
