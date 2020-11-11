@@ -1,6 +1,7 @@
 from lxml import etree
 import os
 import glob
+import sys
 
 context = etree.iterparse('./dataset/Posts.xml', events=('end',), tag='row')
 
@@ -8,16 +9,19 @@ if not os.path.exists('./dataset/docs'):
     os.makedirs('./dataset/docs')
 
 i = 0
+num_docs = 10000
+if len(sys.argv) > 1:
+    num_docs = sys.argv[1]
 for action, elem in context:
-    i += 1
     new_row = etree.Element('post', attrib={attribute: elem.attrib[attribute] for attribute in ['Id', 'ParentId', 'AcceptedAnswerId', 'CreationDate', 'LastEditDate', 'Body', 'LastEditorDisplayName', 'Title', 'Tags'] if attribute in elem.attrib})
     if 'ParentId' in elem.attrib:
         filenum = elem.attrib['ParentId']
     else:
         filenum = elem.attrib['Id']
+        i += 1
     with open('./dataset/docs/%s.xml' % filenum, 'ab') as doc:
         doc.write(etree.tostring(new_row) + b'\x0a')
-    if i == 100000:
+    if i == num_docs:
         break
 
 # fout = open('./dataset/processed.xml', 'wb')
