@@ -20,7 +20,7 @@ import java.util.ArrayList;
 
 import java.awt.Desktop;
 
-public class test {
+public class search {
     public static void printHelp()
     {
         System.out.println("Available commands:");
