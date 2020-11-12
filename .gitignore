@@ -4,3 +4,5 @@
 /dataset/docs
 /dataset/Posts.xml
 index
+combine.py
+subset_gen.py
