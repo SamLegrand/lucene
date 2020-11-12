@@ -11,7 +11,7 @@ if not os.path.exists('./dataset/docs'):
 i = 0
 num_docs = -1
 if len(sys.argv) > 1:
-    num_docs = sys.argv[1]
+    num_docs = int(sys.argv[1])
 for action, elem in context:
     new_row = etree.Element('post', attrib={attribute: elem.attrib[attribute] for attribute in ['Id', 'ParentId', 'AcceptedAnswerId', 'CreationDate', 'LastEditDate', 'Body', 'LastEditorDisplayName', 'Title', 'Tags'] if attribute in elem.attrib})
     if 'ParentId' in elem.attrib:
@@ -21,7 +21,7 @@ for action, elem in context:
         i += 1
     with open('./dataset/docs/%s.xml' % filenum, 'ab') as doc:
         doc.write(etree.tostring(new_row) + b'\x0a')
-    if i == num_docs:
+    if i >= num_docs:
         break
 
 # fout = open('./dataset/processed.xml', 'wb')
