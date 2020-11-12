@@ -21,7 +21,7 @@ import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.StringReader;
 
-public class index_gen {
+public class IndexGen {
     public static void addConditionally(Document doc, Element element, String field, String attribute) {
         if (element.hasAttribute(attribute)) {
             doc.add(new Field(field, element.getAttribute(attribute), TextField.TYPE_STORED));
