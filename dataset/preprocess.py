@@ -21,7 +21,7 @@ for action, elem in context:
         i += 1
     with open('./dataset/docs/%s.xml' % filenum, 'ab') as doc:
         doc.write(etree.tostring(new_row) + b'\x0a')
-    if i >= num_docs:
+    if i == num_docs:
         break
 
 # fout = open('./dataset/processed.xml', 'wb')
