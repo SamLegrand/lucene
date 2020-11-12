@@ -1,3 +1,5 @@
+// Based on analyzer reference code
+
 import org.apache.lucene.analysis.*;
 import org.apache.lucene.analysis.standard.*;
 
