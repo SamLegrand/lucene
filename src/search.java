@@ -6,7 +6,6 @@ import org.apache.lucene.queryparser.classic.ParseException;
 import org.apache.lucene.queryparser.classic.QueryParser;
 import org.apache.lucene.search.*;
 import org.apache.lucene.store.*;
-import org.apache.lucene.util.*;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -36,6 +35,7 @@ public class search {
     }
     
     public static void main(String[] args) throws IOException, ParseException, Exception {
+        //Analyzer analyzer = new CustomAnalyzer(); // Alternative analyzer for case-sensitive search
         Analyzer analyzer = new StandardAnalyzer(); // An Analyzer builds TokenStreams, which analyze text. It thus represents a policy for extracting index terms from text.
 
         Path indexPath = Paths.get("./index"); // Veronderstelt dat index in ./index opgeslagen is

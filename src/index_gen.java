@@ -73,6 +73,7 @@ public class index_gen {
     public static void main(String[] args) throws IOException, ParseException, Exception {
         System.out.println("Loading documents, please wait...");
 
+        //Analyzer analyzer = new CustomAnalyzer(); // Alternative analyzer for case-sensitive search
         Analyzer analyzer = new StandardAnalyzer(); // An Analyzer builds TokenStreams, which analyze text. It thus represents a policy for extracting index terms from text.
 
         Path indexPath = Paths.get("./index"); // Lucene index wordt opgeslagen in ./index

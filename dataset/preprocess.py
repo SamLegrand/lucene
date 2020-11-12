@@ -9,7 +9,7 @@ if not os.path.exists('./dataset/docs'):
     os.makedirs('./dataset/docs')
 
 i = 0
-num_docs = 10000
+num_docs = -1
 if len(sys.argv) > 1:
     num_docs = sys.argv[1]
 for action, elem in context:
