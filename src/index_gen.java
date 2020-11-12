@@ -70,6 +70,7 @@ public class index_gen {
         }
     }
     
+    // Based on lucene reference code
     public static void main(String[] args) throws IOException, ParseException, Exception {
         System.out.println("Loading documents, please wait...");
 

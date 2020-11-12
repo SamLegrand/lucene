@@ -34,6 +34,7 @@ public class search {
         System.out.println("  quit             exits the program");
     }
     
+    // Based on lucene reference code
     public static void main(String[] args) throws IOException, ParseException, Exception {
         //Analyzer analyzer = new CustomAnalyzer(); // Alternative analyzer for case-sensitive search
         Analyzer analyzer = new StandardAnalyzer(); // An Analyzer builds TokenStreams, which analyze text. It thus represents a policy for extracting index terms from text.
